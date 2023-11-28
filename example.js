@@ -1,5 +1,11 @@
-const { Client, Location, Poll, List, Buttons, LocalAuth } = require('./index');
-
+const { Client,MessageMedia, Location, Poll, List, Buttons, LocalAuth } = require('./index');
+// const { MessageMedia } = require('whatsapp-web.js');
+const express = require("express")
+const http = require("http")
+const app = express()
+const cors=require('cors')
+const fileUpload = require('express-fileupload')
+const server = http.createServer(app)
 const client = new Client({
     authStrategy: new LocalAuth(),
     // proxyAuthentication: { username: 'username', password: 'password' },
@@ -9,6 +15,17 @@ const client = new Client({
     }
 });
 
+app.use(cors())
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(fileUpload({
+    debug: true
+}))
+
+app.get('/', (req, res) => {
+    res.sendFile('index.html', { root: __dirname })
+})
 client.initialize();
 
 client.on('loading_screen', (percent, message) => {
@@ -520,3 +537,54 @@ client.on('group_membership_request', async (notification) => {
     await client.approveGroupMembershipRequestss(notification.chatId, notification.author);
     await client.rejectGroupMembershipRequests(notification.chatId, notification.author);
 });
+app.post('/send-message', (req, res) => {
+    const number = req.body.number;
+    const message = req.body.message;
+
+
+    client.sendMessage(number, message).then(response => {
+        res.status(200).json({
+            status: true,
+            response: response
+        })
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        })
+
+    })
+
+})
+app.post('/send-media-url', async (req, res) => {
+
+    const number = req.body.number;
+    const caption = req.body.message;
+    const url_gambar = req.body.url_gambar;
+    const media = await MessageMedia.fromUrl(url_gambar)
+
+    // const file = req.files.file
+
+    // con st media = new MessageMedia(file.mimetype, file.data.toString('base64'), file.name)
+    // console.log(media)
+
+    // return
+    client.sendMessage(number, media, { caption: caption }).then(response => {
+        res.status(200).json({
+            status: true,
+            response: response
+        })
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        })
+
+        console.log(err)
+
+    })
+
+})
+server.listen(8000, function () {
+    console.log("APpr running in 8000")
+})

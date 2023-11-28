@@ -1,0 +1,259 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        body {
+            padding: 60px;
+        }
+
+        @media (max-width: 980px) {
+            body {
+                padding-top: 0;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+
+    <div id="app">
+        <img src="" id="qrcode">
+        <h2><i class="fa fa-paper-plane" aria-hidden="true"></i> KKD BLORA WA BLAST</h2>
+        <p>
+            <textarea class="form-control" placeholder="Tuliskan Pesan Andda di Sini" id="pesan_anda"></textarea>
+        </p>
+        <p>
+            <textarea class="form-control" placeholder="Tuliskan Penerima (jika banyak, pisahkan dengan tanda koma ',')"
+                id="penerima_blast"></textarea>
+        </p>
+        <p>
+            <textarea class="form-control" placeholder="Tuliskan URL Picture" id="url_picture"></textarea>
+        </p>
+        <h3><button id="send_text" type="button" class="btn btn-primary"><i class="fa fa-paper-plane" aria-hidden="true"></i> Kirim (Hanya teks)</button></h3>
+        <h3><button id="send_media_url" type="button" class="btn btn-primary"><i class="fa fa-paper-plane" aria-hidden="true"></i> Kirim (gambar dari URL)</button></h3>
+        <input type="file" id="picture">
+        <input type="file" id="penerima">
+        
+        <p><button id='send_media' type="button" class="btn btn-primary"><i class="fa fa-paper-plane" aria-hidden="true"></i> Kirim (gambar dari lokal)</button></p>
+        <ul class="logs"></ul>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.2/jquery.min.js"
+        integrity="sha512-tWHlutFnuG0C6nQRlpvrEhE4QpkG1nn2MOUMWmUeRePl4e3Aki0VB6W1v3oLjFtd0hVOtRQ9PHpSfN6u6/QXkQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"
+        integrity="sha512-HTENHrkQ/P0NGDFd5nk6ibVtCkcM7jhr2c7GyvXp5O+4X6O5cQO9AhqFzM+MdeBivsX7Hoys2J7pp2wdgMpCvw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"
+        integrity="sha512-Y8iWYJDo6HiTo5xtml1g4QqHtl/PO1w+dmUpQfQSOTqKNsMhExfyPN2ncNAe9JuJUSKzwK/b6oaNPop4MXzkwg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- <script>
+        $("#picture").change(function () {
+            alert(22)
+            const fileupload = $("#picture").prop('files')[0];
+
+            console.log(fileupload)
+        })
+
+    </script> -->
+    <script>
+        $(document).ready(function () {
+            var socket = io.connect('http://localhost:8000', { path: '/socket.io' })
+
+            socket.on('message', function (msg) {
+                console.log(msg)
+                $('.logs').append(msg)
+            })
+
+            socket.on('qr', function (src) {
+                $("#qrcode").attr('src', src)
+            })
+
+            socket.on('ready', function (src) {
+                $("#qrcode").hide()
+            })
+            socket.on('authenticated', function (src) {
+                $("#qrcode").hide()
+            })
+
+        })
+    </script>
+
+    <script>
+        $("#send_text").click(function () {
+
+            var form_data = new FormData();
+            const fileupload = $("#picture").prop('files')[0];
+
+            console.log(fileupload)
+
+            form_data.append('file', fileupload);
+            form_data.append('number', "");
+            form_data.append('caption', "KEREN NIH");
+
+            let penerima = $("#penerima_blast").val()
+            let data = $.csv.toArray(penerima);
+            console.log(data)
+            data.forEach(element => {
+
+                $.ajax({
+                    type: "POST",
+                    async: false,
+                    url: 'http://localhost:8000/send-message',
+                    dataType: 'json',
+                    data: {
+                        number: element.toString() + "@c.us",
+                        message: $("#pesan_anda").val()
+                    },
+                    success: function (output) {
+                        // console.log(output);
+
+                    },
+
+                    error: function (e) {
+                        // console.log(e.responseText);
+
+
+                    }
+                });
+
+
+            });
+        })
+    </script>
+
+    <script>
+        $("#send_media").click(function () {
+
+            let penerima = $("#penerima_blast").val()
+            let data = $.csv.toArray(penerima);
+            console.log(data)
+
+            data.forEach(element => {
+                let max = 200
+                for (x = 1; x <= max; x++) {
+                    let pesan = "PESAN ke - " + x
+                    if (x == max)
+                        pesan = "Ini pesan terakhir, silahkan dihapus semuanya. Tks"
+                    $.ajax({
+                        type: "POST",
+                        async: false,
+                        url: 'http://localhost:8000/send-media',
+                        dataType: 'json',
+                        data: {
+                            number: element.toString() + "@c.us",
+                            caption: pesan
+                        },
+                        success: function (output) {
+                            // console.log(output);
+
+                        },
+
+                        error: function (e) {
+                            // console.log(e.responseText);
+
+
+                        }
+                    });
+
+
+                }
+            });
+
+        })
+    </script>
+    <script>
+        $("#send_media_upload").click(function () {
+
+            // var files = $("#picture")[0].files[0];
+            var data;
+
+            data = new FormData();
+            data.append('file', $('#picture')[0].files[0]);
+            data.append('number', '6289510279475@c.us');
+            data.append('caption', 'sukses ya');
+
+            for (y = 0; y < 10; y++) {
+                const d = new Date();
+                let time = d.getTime();
+                $.ajax({
+                    processData: false,
+                    contentType: false,
+                    type: "POST",
+                    async: false,
+                    url: 'http://localhost:8000/send-media-upload',
+                    dataType: 'json',
+                    data: data,
+                    success: function (output) {
+                        // console.log(output);
+
+                    },
+
+                    error: function (e) {
+                        // console.log(e.responseText);
+
+
+                    }
+                });
+            }
+        })
+    </script>
+    <script>
+        $("#send_media_url").click(function () {
+
+            var form_data = new FormData();
+            const fileupload = $("#picture").prop('files')[0];
+
+            console.log(fileupload)
+
+            form_data.append('file', fileupload);
+            form_data.append('number', "");
+            form_data.append('caption', "KEREN NIH");
+
+            let penerima = $("#penerima_blast").val()
+            let data = $.csv.toArray(penerima);
+            console.log(data)
+            data.forEach(element => {
+
+                $.ajax({
+                    type: "POST",
+                    async: false,
+                    url: 'http://localhost:8000/send-media-url',
+                    dataType: 'json',
+                    data: {
+                        number: element.toString() + "@c.us",
+                        message: $("#pesan_anda").val(),
+                        url_gambar:$("#url_picture").val()
+                    },
+                    success: function (output) {
+                        // console.log(output);
+
+                    },
+
+                    error: function (e) {
+                        // console.log(e.responseText);
+
+
+                    }
+                });
+
+
+            });
+        })
+    </script>
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+    integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
+    integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+    crossorigin="anonymous"></script>
+
+</html>
